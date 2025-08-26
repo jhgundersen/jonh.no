@@ -7,7 +7,6 @@
 	<link rel="preconnect" href="https://fonts.googleapis.com">
 	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 	<link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700;900&display=swap" rel="stylesheet">
-
 	<style>
 		html {
 			height: -webkit-fill-available;
@@ -38,27 +37,31 @@
 
 		canvas {
 			background: transparent;
-			border: 2px solid #555;
 		}
 
 		#info {
 			display: flex;
 			flex-direction: column;
 			gap: 20px;
+			font-weight: 700;
+			font-size: 18px;
 		}
 
-		#next {
-			background: transparent;
-			border: 2px solid #555;
+		.box {
+			border: 1px solid #555;
+			border-radius: 10px;
 		}
 
 		.tetris {
+			position: absolute;
+			top: 200px;
+			right: 200px;
 			display: flex;
-			flex: 1;
 			gap: 20px;
-			align-items: top;
+			align-items: flex-start;
 			justify-content: center;
-			transform: translateY(-20vh) translateX(20vh);
+			padding-bottom: 100px;
+			padding-left: 100px;
 		}
 
 		.content {
@@ -70,12 +73,15 @@
 		.score {
 			background-color: white;
 			opacity: 0.6;
-			border: 2px solid #555;
 			padding: 10px;
 		}
 
 		.score-text {
 			opacity: 1;
+		}
+
+		.small {
+			font-size: 0.8em;
 		}
 	</style>
 
@@ -83,16 +89,22 @@
 
 	<div style="flex: 1;"></div>
 	<div class="content">
-		<div class="tetris">
-			<canvas id="tetris" width="240" height="400"></canvas>
-			<div id="info">
-				<div class="score">
-					<div class="score-text">Score: <span id="score">0</span></div>
-				</div>
-				<canvas id="next" width="80" height="80"></canvas>
-			</div>
-		</div>
+		<div style="flex: 1"></div>
 		<audio style="margin: 20px;" controls loop src="/jonh.no.mp3"></audio>
+	</div>
+
+	<div class="tetris">
+		<canvas id="tetris" class="box" width="240" height="400"></canvas>
+		<div id="info">
+			<div class="score box">
+				<div class="score-text">
+					<div>Score: <span id="score">0</span></div>
+					<div class="small">Last: <span id="lastScore">0</span></div>
+					<div class="small">High: <span id="highScore">0</span></div>
+				</div>
+			</div>
+			<canvas id="next" class="box" width="80" height="80"></canvas>
+		</div>
 	</div>
 
 	<script>
@@ -105,8 +117,25 @@
 		nextContext.scale(20, 20);
 
 		const scoreDisplay = document.getElementById('score');
+		const lastScoreDisplay = document.getElementById('lastScore');
+		const highScoreDisplay = document.getElementById('highScore');
 
 		let score = 0;
+		let lastScore = 0;
+		let highScore = 0;
+
+		// Load scores from localStorage
+		function loadScores() {
+			lastScore = parseInt(localStorage.getItem('tetrisLastScore')) || 0;
+			highScore = parseInt(localStorage.getItem('tetrisHighScore')) || 0;
+			updateScoreDisplay();
+		}
+
+		// Save scores to localStorage
+		function saveScores() {
+			localStorage.setItem('tetrisLastScore', lastScore);
+			localStorage.setItem('tetrisHighScore', highScore);
+		}
 
 		function createMatrix(w, h) {
 			const matrix = [];
@@ -159,6 +188,27 @@
 					[0, 7, 7],
 					[0, 0, 0],
 				];
+			} else if (type === 'X') { // Cross/Plus shape
+				return [
+					[0, 8, 0],
+					[8, 8, 8],
+					[0, 8, 0],
+				];
+			} else if (type === 'U') { // U-shape
+				return [
+					[9, 0, 9],
+					[9, 9, 9],
+					[0, 0, 0],
+				];
+			} else if (type === 'P') { // Small L
+				return [
+					[10, 10],
+					[10, 0],
+				];
+			} else if (type === 'D') { // Diamond/dot
+				return [
+					[11],
+				];
 			}
 		}
 
@@ -185,7 +235,31 @@
 			nextContext.clearRect(0, 0, nextCanvas.width, nextCanvas.height);
 			nextContext.fillStyle = "rgba(0, 0, 0, 0.6)";
 			nextContext.fillRect(0, 0, nextCanvas.width, nextCanvas.height);
-			drawMatrix(nextContext, next.matrix, { x: 1, y: 1 });
+
+			// Find the bounding box of the actual piece (non-zero cells)
+			let minX = next.matrix[0].length, maxX = -1;
+			let minY = next.matrix.length, maxY = -1;
+
+			for (let y = 0; y < next.matrix.length; y++) {
+				for (let x = 0; x < next.matrix[y].length; x++) {
+					if (next.matrix[y][x] !== 0) {
+						minX = Math.min(minX, x);
+						maxX = Math.max(maxX, x);
+						minY = Math.min(minY, y);
+						maxY = Math.max(maxY, y);
+					}
+				}
+			}
+
+			// Calculate actual piece dimensions
+			const pieceWidth = maxX - minX + 1;
+			const pieceHeight = maxY - minY + 1;
+
+			// Center the piece in the 4x4 preview area
+			const offsetX = (4 - pieceWidth) / 2 - minX;
+			const offsetY = (4 - pieceHeight) / 2 - minY;
+
+			drawMatrix(nextContext, next.matrix, { x: offsetX, y: offsetY });
 		}
 
 		function merge(arena, player) {
@@ -246,10 +320,14 @@
 			player.pos.y = 0;
 			player.pos.x = Math.floor(arena[0].length / 2) - Math.floor(player.matrix[0].length / 2);
 			if (collide(arena, player)) {
+				// Game over - save current score as last score
+				lastScore = score;
+				saveScores();
+
 				arena.forEach(row => row.fill(0));
 				score = 0;
-				updateScore();
-				console.log("Game over. Score reset.");
+				updateScoreDisplay();
+				console.log("Game over. Score: " + lastScore);
 			}
 		}
 
@@ -300,22 +378,60 @@
 
 		function updateScore() {
 			scoreDisplay.innerText = score;
+			if (score > highScore) {
+				highScore = score;
+				highScoreDisplay.innerText = highScore;
+			}
+		}
+
+		function updateScoreDisplay() {
+			scoreDisplay.innerText = score;
+			lastScoreDisplay.innerText = lastScore;
+			highScoreDisplay.innerText = highScore;
 		}
 
 		function randomPiece() {
-			const pieces = 'TJLOSZI';
-			return pieces[Math.floor(Math.random() * pieces.length)];
+			// Weighted probability system
+			// Higher numbers = more common pieces
+			const pieceWeights = {
+				'T': 15,  // Standard pieces - common
+				'O': 15,
+				'L': 15,
+				'J': 15,
+				'I': 12,  // I-piece slightly less common
+				'S': 12,
+				'Z': 12,
+				'X': 8,   // Special pieces - less common
+				'U': 6,
+				'P': 4,   // Rare pieces
+				'D': 1    // Ultra rare single dot
+			};
+
+			// Create weighted array
+			const weightedPieces = [];
+			for (const [piece, weight] of Object.entries(pieceWeights)) {
+				for (let i = 0; i < weight; i++) {
+					weightedPieces.push(piece);
+				}
+			}
+
+			return weightedPieces[Math.floor(Math.random() * weightedPieces.length)];
 		}
 
 		const colors = [
 			null,
-			'#FF0D72',
-			'#0DC2FF',
-			'#0DFF72',
-			'#F538FF',
-			'#FF8E0D',
-			'#FFE138',
-			'#3877FF',
+			'#FF0D72', // T - Pink
+			'#0DC2FF', // O - Cyan
+			'#0DFF72', // L - Green
+			'#F538FF', // J - Purple
+			'#FF8E0D', // I - Orange
+			'#FFE138', // S - Yellow
+			'#3877FF', // Z - Blue
+			'#FF6B6B', // X - Red
+			'#4ECDC4', // U - Teal
+			'#45B7D1', // P - Light Blue
+			'#FFA07A', // D - Light Salmon
+			'#98D8C8', // W - Mint
 		];
 
 		const arena = createMatrix(12, 20);
@@ -361,8 +477,8 @@
 		});
 
 		playerReset();
+		loadScores();
 		update();
-		updateScore();
 		drawNext();
 	</script>
 </body>
