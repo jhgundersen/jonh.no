@@ -1,4 +1,4 @@
-<!doctype html>
+!doctype html>
 
 <html>
 
@@ -26,8 +26,8 @@
 			min-height: 100vh;
 			min-height: -webkit-fill-available;
 			display: flex;
-			flex-direction: column;
-
+			justify-content: end;
+            
 			background-image: url('landscape.png');
 			background-size: cover;
 			background-position: center;
@@ -52,21 +52,13 @@
 		}
 
 		.tetris {
-			position: absolute;
-			top: 200px;
-			right: 200px;
 			display: flex;
 			gap: 20px;
 			align-items: flex-start;
 			justify-content: center;
-			padding-bottom: 100px;
-			padding-left: 100px;
-		}
-
-		.content {
-			display: flex;
-			padding: 10px;
-			align-items: baseline;
+            padding-top: 100px;
+            padding-right: 200px;
+		
 		}
 
 		.score {
@@ -115,16 +107,8 @@
 	</style>
 
 <body>
-
-	<div style="flex: 1;"></div>
-	<div class="content">
-		<div style="flex: 1"></div>
-		<!-- Audio element hidden and will be controlled by JavaScript -->
-		<audio id="gameMusic" loop src="/tetris.mp3" style="display: none;"></audio>
-	</div>
-
 	<div class="tetris">
-		<div id="gameArea">
+        <div id="gameArea">
 			<canvas id="tetris" class="box" width="240" height="400"></canvas>
 			<div id="startOverlay">
 				<div>Click to Start</div>
@@ -141,6 +125,7 @@
 			<canvas id="next" class="box" width="80" height="80"></canvas>
 		</div>
 	</div>
+    <audio id="gameMusic" loop src="/tetris.mp3" style="display: none;"></audio>
 
 	<script>
 		const canvas = document.getElementById('tetris');
