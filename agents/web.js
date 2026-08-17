@@ -349,10 +349,14 @@
   // -------------------------------------------------------------------------
   // Soundtrack
   //
-  // Three tracks, one player, no autoplay — browsers block it, and a page that
-  // starts making noise on its own is a page you close. Switching track while
-  // something is already playing keeps playing, because the only reason to
-  // reach for these buttons mid-listen is that you want the other one.
+  // One player, no autoplay — browsers block it, and a page that starts making
+  // noise on its own is a page you close. Switching track while something is
+  // already playing keeps playing, because the only reason to reach for these
+  // buttons mid-listen is that you want the other one.
+  //
+  // The player itself does not loop. A track that ends hands over to the next
+  // one and wraps at the end of the list, so leaving this open gets you the
+  // whole soundtrack rather than the same three minutes until you notice.
   // -------------------------------------------------------------------------
 
   var TRACKS = ["agents/soundtrack_1.mp3", "agents/soundtrack_2.mp3",
@@ -378,6 +382,12 @@
     // do about it and nothing to report — the button stays showing play.
     if (p && p.catch) p.catch(function () { renderAudio() })
     if (p && p.then) p.then(renderAudio, function () {})
+  }
+
+  // Straight through the list, wrapping. In order rather than shuffled: these
+  // were written as a set, and a set has an order.
+  function advanceTrack() {
+    setTrack((trackIndex + 1) % TRACKS.length, true)
   }
 
   function toggleAudio() {
@@ -460,6 +470,7 @@
     ;["play", "pause", "ended"].forEach(function (ev) {
       el.player.addEventListener(ev, renderAudio)
     })
+    el.player.addEventListener("ended", advanceTrack)
 
     newLevel(level, 0)
     fitBoard()
