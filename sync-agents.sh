@@ -27,18 +27,23 @@ if [[ ! -d $dst ]]; then
 fi
 
 # The three core files land in one shared global scope when the web page loads
-# them as plain <script> tags, so a name declared twice would have one file
-# silently overwrite the other's function. Nothing warns about that at runtime,
-# so it gets checked here every time, on both paths.
+# them as plain <script> tags, so a name declared twice has one definition
+# silently overwrite the other. Nothing warns about it at runtime in either
+# QML or a browser, so it is checked here every time, on both paths.
+#
+# The check spans the files together, which means it also catches the same name
+# declared twice inside one of them — which has already happened once, when a
+# new placeHazard() was added next to a dead one of the same name and quietly
+# lost every call to the corpse.
 check_collisions() {
   local dupes
   dupes=$(cat "${CORE[@]/#/$src/}" \
     | grep -oE '^(function [A-Za-z0-9_]+|var [A-Za-z0-9_]+)' \
     | sed -E 's/^(function|var) //' | sort | uniq -d)
   if [[ -n $dupes ]]; then
-    echo "sync-agents: top-level name declared in more than one core file:" >&2
+    echo "sync-agents: top-level name declared more than once in the core:" >&2
     echo "$dupes" | sed 's/^/  /' >&2
-    echo "             they share one global scope in the browser; rename one." >&2
+    echo "             one definition silently wins; rename one of them." >&2
     return 1
   fi
 }
