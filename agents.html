@@ -92,18 +92,27 @@
 			image-rendering: pixelated;
 		}
 
-		#paused {
+		#overlay {
 			position: absolute;
 			inset: 0;
 			display: flex;
 			align-items: center;
 			justify-content: center;
-			background: rgba(0, 0, 0, 0.45);
+			background: rgba(0, 0, 0, 0.55);
 			font-size: 13px;
 			font-weight: 700;
 			letter-spacing: 0.2em;
 			line-height: 1;
 			z-index: 2;
+			transition: opacity 160ms;
+		}
+
+		/* Bigger and brighter before the first click than on a later pause: one
+		   is an invitation, the other is a status. */
+		#overlay.start {
+			font-size: 16px;
+			color: var(--accent);
+			background: rgba(0, 0, 0, 0.7);
 		}
 
 		/* --- readouts ----------------------------------------------------- */
@@ -264,17 +273,16 @@
 			gap: 6px;
 		}
 
+		/* The native <audio> player is the one thing on the page that won't take
+		   the theme — it renders as a slab of browser grey next to a board mixed
+		   from five colors. So it's hidden and driven by a button in the same
+		   style as everything else here. */
 		#player {
-			height: 32px;
-			/* The native player is the one thing on the page that won't take the
-			   theme. Dropping its opacity stops a slab of Chrome grey sitting
-			   next to a board that has been carefully mixed from five colors. */
-			opacity: 0.55;
-			transition: opacity 140ms;
+			display: none;
 		}
 
-		#player:hover {
-			opacity: 1;
+		#playpause {
+			min-width: 2.6em;
 		}
 	</style>
 </head>
@@ -301,7 +309,7 @@
 	<div id="board">
 		<canvas id="terrain"></canvas>
 		<canvas id="actors"></canvas>
-		<div id="paused" style="display: none">PAUSED</div>
+		<div id="overlay" class="start">CLICK TO START</div>
 	</div>
 
 	<p id="line"></p>
@@ -320,8 +328,9 @@
 	<div id="themes"></div>
 
 	<div class="audio">
+		<button id="playpause" class="theme" title="Play or pause the soundtrack">&#9654;</button>
 		<div id="tracks"></div>
-		<audio id="player" controls loop></audio>
+		<audio id="player" loop></audio>
 	</div>
 
 	<p class="sub">

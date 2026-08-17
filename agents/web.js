@@ -30,10 +30,14 @@
     "kanagawa":     { background: "#1f1f28", foreground: "#dcd7ba", accent: "#dcd7ba", urgent: "#c34043", muted: "#54546d" },
     "osaka-jade":   { background: "#111c18", foreground: "#c1c497", accent: "#509475", urgent: "#c34043", muted: "#53685b" },
     "matte-black":  { background: "#121212", foreground: "#bebebe", accent: "#e68e0d", urgent: "#d35f5f", muted: "#333333" },
-    "hackerman":    { background: "#0b0c16", foreground: "#ddf7ff", accent: "#82fb9c", urgent: "#ff5555", muted: "#2d3450" },
-    "rose-pine":    { background: "#faf4ed", foreground: "#575279", accent: "#56949f", urgent: "#b4637a", muted: "#9893a5" }
+    "hackerman":    { background: "#0b0c16", foreground: "#ddf7ff", accent: "#82fb9c", urgent: "#ff5555", muted: "#2d3450" }
   }
   var THEME_ORDER = Object.keys(THEMES)
+  // Dark only, deliberately. Every material is mixed out of the theme
+  // background, so on a light theme dirt, rock and steel all land within a few
+  // percent of each other and the board loses the tiers that tell you how deep
+  // you're looking. The bar plugin has the same weakness; there it at least
+  // matches the desktop around it.
 
   // Panel.qml's numbers, not new ones.
   var SPEED_NAMES = ["Calm", "Steady", "Brisk"]
@@ -82,7 +86,8 @@
   var world = null
   var level = 1
   var attempt = 0
-  var running = true
+  var running = false
+  var started = false
   var showLabels = false
   var speedIndex = 1
   var themeName = "tokyo-night"
@@ -287,7 +292,15 @@
 
     el.speed.textContent = "speed(s): " + SPEED_NAMES[speedIndex]
     el.who.textContent = "who(w): " + (showLabels ? "on" : "off")
-    el.paused.style.display = running ? "none" : ""
+    if (!started) {
+      el.overlay.textContent = "CLICK TO START"
+      el.overlay.className = "start"
+      el.overlay.style.display = ""
+    } else {
+      el.overlay.textContent = "PAUSED"
+      el.overlay.className = ""
+      el.overlay.style.display = running ? "none" : ""
+    }
     el.lifetime.textContent = lifetimeSaved.toLocaleString() + " home, " + levelsCleared + " levels"
   }
 
@@ -303,7 +316,23 @@
 
   function cycleSpeed() { speedIndex = (speedIndex + 1) % SPEED_INTERVALS.length; restartClock(); saveState(); render() }
   function toggleLabels() { showLabels = !showLabels; paintActors(); saveState(); render() }
-  function togglePause() { running = !running; render() }
+  function togglePause() {
+    if (!started) return start()
+    running = !running
+    render()
+  }
+
+  // The first click does double duty: it starts the simulation and it is the
+  // user gesture a browser requires before any audio may play. Autoplay
+  // policies are why this page has a start button at all — without a real
+  // click there is no way to begin a soundtrack, and a silent player nobody
+  // pressed looks broken rather than polite.
+  function start() {
+    started = true
+    running = true
+    playAudio()
+    render()
+  }
 
   function setTheme(name) {
     if (!THEMES[name]) return
@@ -329,18 +358,37 @@
   var TRACKS = ["agents/soundtrack_1.mp3", "agents/soundtrack_2.mp3", "agents/soundtrack_3.mp3"]
   var trackIndex = 0
 
-  function setTrack(i, autoplay) {
+  function setTrack(i, keepPlaying) {
     trackIndex = i
-    var wasPlaying = autoplay || (!el.player.paused && !el.player.ended)
+    var wasPlaying = keepPlaying && !el.player.paused && !el.player.ended
     el.player.src = TRACKS[i]
-    if (wasPlaying) {
-      var p = el.player.play()
-      if (p && p.catch) p.catch(function () { /* blocked until a real click */ })
-    }
+    if (wasPlaying || (keepPlaying && started)) playAudio()
     Array.prototype.forEach.call(el.tracks.children, function (b, n) {
       b.classList.toggle("on", n === i)
     })
+    renderAudio()
     saveState()
+  }
+
+  function playAudio() {
+    var p = el.player.play()
+    // Rejects when the browser has not seen a gesture it accepts. Nothing to
+    // do about it and nothing to report — the button stays showing play.
+    if (p && p.catch) p.catch(function () { renderAudio() })
+    if (p && p.then) p.then(renderAudio, function () {})
+  }
+
+  function toggleAudio() {
+    if (el.player.paused) playAudio()
+    else { el.player.pause(); renderAudio() }
+  }
+
+  // Play and pause glyphs rather than a fixed one, so the button says which of
+  // the two it will do next.
+  function renderAudio() {
+    var playing = !el.player.paused && !el.player.ended
+    el.playpause.innerHTML = playing ? "&#10073;&#10073;" : "&#9654;"
+    el.playpause.classList.toggle("on", playing)
   }
 
   // -------------------------------------------------------------------------
@@ -358,12 +406,13 @@
     el.toolbar = document.getElementById("toolbar")
     el.speed = document.getElementById("speed")
     el.who = document.getElementById("who")
-    el.paused = document.getElementById("paused")
+    el.overlay = document.getElementById("overlay")
     el.lifetime = document.getElementById("lifetime")
     el.themes = document.getElementById("themes")
     el.boardWrap = document.getElementById("board")
     el.player = document.getElementById("player")
     el.tracks = document.getElementById("tracks")
+    el.playpause = document.getElementById("playpause")
 
     var terrain = document.getElementById("terrain")
     var actors = document.getElementById("actors")
@@ -402,6 +451,13 @@
       el.tracks.appendChild(b)
     })
     setTrack(trackIndex, false)
+    el.playpause.addEventListener("click", toggleAudio)
+    // The element is the source of truth for whether sound is coming out, so
+    // the button follows it however it got there — including the track ending
+    // or the browser stopping it.
+    ;["play", "pause", "ended"].forEach(function (ev) {
+      el.player.addEventListener(ev, renderAudio)
+    })
 
     newLevel(level, 0)
     fitBoard()

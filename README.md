@@ -13,6 +13,10 @@ here because a browser reloads in a keystroke. `./sync-agents.sh` copies them
 to the plugin; `./sync-agents.sh --check` fails if the two have drifted.
 `agents/web.js` is the only web-only part.
 
+The theme buttons are the real Omarchy themes, so the page doubles as the
+development tool the plugin never had: it renders the board under any theme in
+a second, where the bar needs a full shell restart for each one.
+
 Local preview needs a server rather than opening the file, for the fonts:
 
 ```sh
