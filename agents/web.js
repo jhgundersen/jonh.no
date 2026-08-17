@@ -355,7 +355,8 @@
   // reach for these buttons mid-listen is that you want the other one.
   // -------------------------------------------------------------------------
 
-  var TRACKS = ["agents/soundtrack_1.mp3", "agents/soundtrack_2.mp3", "agents/soundtrack_3.mp3"]
+  var TRACKS = ["agents/soundtrack_1.mp3", "agents/soundtrack_2.mp3",
+               "agents/soundtrack_3.mp3", "agents/soundtrack_4.mp3"]
   var trackIndex = 0
 
   function setTrack(i, keepPlaying) {
