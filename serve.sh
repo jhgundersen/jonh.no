@@ -8,8 +8,7 @@
 #
 # Opening the files directly with file:// mostly works and then quietly doesn't:
 # the Google Fonts stylesheet is blocked, so everything falls back to a system
-# font, and agents.html loads four scripts that a few browsers treat as
-# cross-origin from a file URL. Serving it avoids both.
+# font. Serving it avoids that.
 
 set -euo pipefail
 
@@ -45,7 +44,7 @@ host=$([[ $bind == 0.0.0.0 ]] && hostname -I 2>/dev/null | awk '{print $1}' || e
 host=${host:-127.0.0.1}
 
 echo "  http://$host:$port/            front page"
-echo "  http://$host:$port/agents.html Oh No! More Agents"
+echo "  http://$host:$port/agents.html -> oh-no-more-agents.com"
 echo "  http://$host:$port/tetris.html Tetris"
 echo
 echo "Ctrl-C to stop."

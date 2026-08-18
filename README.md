@@ -3,19 +3,10 @@ The website
 
 ## agents.html
 
-An ambient Lemmings parody that plays itself: a level carves itself out of
-solid earth and a dozen-odd agents with no supervisor work out how to get
-through it. Nobody plays it, including you.
-
-`agents/Sim.js`, `agents/Draw.js` and `agents/Palette.js` are shared byte for
-byte with the Omarchy bar plugin that runs the same simulation, and are edited
-here because a browser reloads in a keystroke. `./sync-agents.sh` copies them
-to the plugin; `./sync-agents.sh --check` fails if the two have drifted.
-`agents/web.js` is the only web-only part.
-
-The theme buttons are the real Omarchy themes, so the page doubles as the
-development tool the plugin never had: it renders the board under any theme in
-a second, where the bar needs a full shell restart for each one.
+Oh No! More Agents started here and has moved to its own site,
+[oh-no-more-agents.com](https://oh-no-more-agents.com/), where it is developed
+in the `oh-no-more-agents` repository and keeps the Omarchy bar plugin in sync.
+What is left here is a redirect, so the old address still works.
 
 ## Working on it
 
@@ -27,11 +18,8 @@ a second, where the bar needs a full shell restart for each one.
 ```
 
 Serve rather than opening the files directly: over `file://` the Google Fonts
-stylesheet is blocked so everything falls back to a system font, and some
-browsers treat `agents.html`'s scripts as cross-origin. `serve.sh` steps past a
-port that is already taken instead of dying on it.
+stylesheet is blocked so everything falls back to a system font. `serve.sh`
+steps past a port that is already taken instead of dying on it.
 
 `deploy.sh` always dry-runs first and calls out anything `--delete` would
-remove from the server before asking. It also runs `sync-agents.sh --check`, so
-a core that has drifted from the plugin is caught before the website becomes
-the published version of the disagreement. Neither script is deployed.
+remove from the server before asking. Neither script is deployed.

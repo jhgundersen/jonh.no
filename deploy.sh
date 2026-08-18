@@ -37,18 +37,6 @@ for arg in "$@"; do
   esac
 done
 
-# The core files are shared with the bar plugin, and the two drifting apart is
-# the failure this whole arrangement is set up to avoid. Better to hear about
-# it before the website becomes the published version of the disagreement.
-if [[ -x ./sync-agents.sh ]]; then
-  ./sync-agents.sh --check || {
-    echo
-    echo "deploy: the shared core has drifted from the plugin (see above)."
-    echo "        run ./sync-agents.sh, or deploy anyway with --yes."
-    [[ $assume_yes -eq 1 ]] || exit 1
-  }
-fi
-
 echo "==> $TARGET (dry run)"
 if ! out=$(rsync -az --delete --itemize-changes --dry-run "${EXCLUDES[@]}" ./ "$TARGET/" 2>&1); then
   echo "$out" | sed 's/^/    /'
