@@ -107,14 +107,6 @@
 			transition: opacity 160ms;
 		}
 
-		/* Bigger and brighter before the first click than on a later pause: one
-		   is an invitation, the other is a status. */
-		#overlay.start {
-			font-size: 16px;
-			color: var(--accent);
-			background: rgba(0, 0, 0, 0.7);
-		}
-
 		/* --- readouts ----------------------------------------------------- */
 
 		.hud {
@@ -228,6 +220,42 @@
 			font-weight: 700;
 		}
 
+		/* The hints are buttons. They were a row of text describing keys, which
+		   is no use at all on a touchscreen — and the keys still work, so this
+		   costs nothing and makes the page usable with a thumb. Sized to the
+		   44px touch target everybody settled on. */
+		.ctl {
+			font-family: inherit;
+			font-size: 11px;
+			color: var(--muted);
+			background: transparent;
+			border: 1px solid transparent;
+			border-radius: 4px;
+			padding: 6px 10px;
+			min-height: 32px;
+			cursor: pointer;
+			transition: color 140ms, border-color 140ms, background-color 140ms;
+		}
+
+		.ctl:hover {
+			color: var(--fg);
+			border-color: var(--muted);
+		}
+
+		.ctl:active {
+			background: color-mix(in srgb, var(--accent) 20%, transparent);
+		}
+
+		@media (pointer: coarse) {
+			/* No hover on a touchscreen, so the affordance has to be permanent. */
+			.ctl {
+				border-color: var(--muted);
+				min-height: 44px;
+				padding: 10px 14px;
+				font-size: 12px;
+			}
+		}
+
 		#themes {
 			display: flex;
 			gap: 6px;
@@ -309,7 +337,7 @@
 	<div id="board">
 		<canvas id="terrain"></canvas>
 		<canvas id="actors"></canvas>
-		<div id="overlay" class="start">CLICK TO START</div>
+		<div id="overlay" style="display: none">PAUSED</div>
 	</div>
 
 	<p id="line"></p>
@@ -317,11 +345,12 @@
 	<div id="toolbar"></div>
 
 	<div class="controls">
-		<span><b>space</b> pause</span>
-		<span><b>&larr; &rarr;</b> level</span>
-		<span><b>r</b> restart</span>
-		<span><b id="speed">speed(s)</b></span>
-		<span><b id="who">who(w)</b></span>
+		<button class="ctl" id="c-pause"><b>space</b> <span id="pauseWord">pause</span></button>
+		<button class="ctl" id="c-prev"><b>&larr;</b></button>
+		<button class="ctl" id="c-next"><b>&rarr;</b> level</button>
+		<button class="ctl" id="c-restart"><b>r</b> restart</button>
+		<button class="ctl" id="speed">speed(s)</button>
+		<button class="ctl" id="who">who(w)</button>
 		<span id="lifetime"></span>
 	</div>
 

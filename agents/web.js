@@ -86,8 +86,7 @@
   var world = null
   var level = 1
   var attempt = 0
-  var running = false
-  var started = false
+  var running = true
   var showLabels = false
   var speedIndex = 1
   var themeName = "tokyo-night"
@@ -292,15 +291,8 @@
 
     el.speed.textContent = "speed(s): " + SPEED_NAMES[speedIndex]
     el.who.textContent = "who(w): " + (showLabels ? "on" : "off")
-    if (!started) {
-      el.overlay.textContent = "CLICK TO START"
-      el.overlay.className = "start"
-      el.overlay.style.display = ""
-    } else {
-      el.overlay.textContent = "PAUSED"
-      el.overlay.className = ""
-      el.overlay.style.display = running ? "none" : ""
-    }
+    el.pauseWord.textContent = running ? "pause" : "resume"
+    el.overlay.style.display = running ? "none" : ""
     el.lifetime.textContent = lifetimeSaved.toLocaleString() + " home, " + levelsCleared + " levels"
   }
 
@@ -317,20 +309,7 @@
   function cycleSpeed() { speedIndex = (speedIndex + 1) % SPEED_INTERVALS.length; restartClock(); saveState(); render() }
   function toggleLabels() { showLabels = !showLabels; paintActors(); saveState(); render() }
   function togglePause() {
-    if (!started) return start()
     running = !running
-    render()
-  }
-
-  // The first click does double duty: it starts the simulation and it is the
-  // user gesture a browser requires before any audio may play. Autoplay
-  // policies are why this page has a start button at all — without a real
-  // click there is no way to begin a soundtrack, and a silent player nobody
-  // pressed looks broken rather than polite.
-  function start() {
-    started = true
-    running = true
-    playAudio()
     render()
   }
 
@@ -349,10 +328,10 @@
   // -------------------------------------------------------------------------
   // Soundtrack
   //
-  // One player, no autoplay — browsers block it, and a page that starts making
+  // One player, and it is silent until somebody presses play. Not because
+  // browsers block autoplay — they do — but because a page that starts making
   // noise on its own is a page you close. Switching track while something is
-  // already playing keeps playing, because the only reason to reach for these
-  // buttons mid-listen is that you want the other one.
+  // already playing keeps playing; switching while it is silent stays silent.
   //
   // The player itself does not loop. A track that ends hands over to the next
   // one and wraps at the end of the list, so leaving this open gets you the
@@ -368,7 +347,7 @@
     trackIndex = i
     var wasPlaying = keepPlaying && !el.player.paused && !el.player.ended
     el.player.src = TRACKS[i]
-    if (wasPlaying || (keepPlaying && started)) playAudio()
+    if (wasPlaying) playAudio()
     Array.prototype.forEach.call(el.tracks.children, function (b, n) {
       b.classList.toggle("on", n === i)
     })
@@ -421,6 +400,7 @@
     el.overlay = document.getElementById("overlay")
     el.lifetime = document.getElementById("lifetime")
     el.themes = document.getElementById("themes")
+    el.pauseWord = document.getElementById("pauseWord")
     el.boardWrap = document.getElementById("board")
     el.player = document.getElementById("player")
     el.tracks = document.getElementById("tracks")
@@ -478,6 +458,28 @@
 
     window.addEventListener("resize", fitBoard)
     el.boardWrap.addEventListener("click", togglePause)
+
+    // Every hint is also a button. The keys still work; this is so the page can
+    // be used with a thumb, which it could not be before — a row of text saying
+    // which keys to press is no use at all on a touchscreen.
+    var buttons = {
+      "c-pause": togglePause,
+      "c-prev": function () { advance(-1) },
+      "c-next": function () { advance(1) },
+      "c-restart": function () { newLevel(level, 0) },
+      "speed": cycleSpeed,
+      "who": toggleLabels
+    }
+    Object.keys(buttons).forEach(function (id) {
+      var b = document.getElementById(id)
+      if (!b) return
+      b.addEventListener("click", function (ev) {
+        ev.preventDefault()
+        buttons[id]()
+        render()
+        b.blur()   // or the button keeps focus and swallows the space bar
+      })
+    })
 
     document.addEventListener("keydown", function (e) {
       if (e.metaKey || e.ctrlKey || e.altKey) return

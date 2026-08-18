@@ -48,45 +48,6 @@ check_collisions() {
   fi
 }
 
-# The opposite failure, and a worse one: a core file CALLING something another
-# core file defines. In a browser all three land in one global scope so it
-# resolves and looks fine; in QML each .js is its own scope with no imports
-# between them, so it throws a ReferenceError at runtime. Draw.js calling
-# Sim.js's specialSpec() did exactly this — it took out every agent on the board
-# in the bar plugin, on every level that had a special, while the web version
-# was perfect. Anything one file needs from another travels on the world object.
-check_cross_refs() {
-  python3 - "$src" "${CORE[@]}" <<'PYEOF'
-import re, sys, pathlib
-src = pathlib.Path(sys.argv[1]); files = sys.argv[2:]
-defs, calls = {}, {}
-for f in files:
-    text = pathlib.Path(src / f).read_text()
-    text = re.sub(r'//[^
-]*', '', text)
-    text = re.sub(r'"[^"
-]*"|'[^'
-]*'', '""', text)
-    defs[f] = set(re.findall(r'^(?:function|var)\s+([A-Za-z_]\w*)', text, re.M))
-    local = set(re.findall(r'(?:var|function)\s+([A-Za-z_]\w*)', text))
-    used = set(re.findall(r'([A-Za-z_]\w*)\s*\(', text)) | set(re.findall(r'([A-Z][A-Z0-9_]{2,})', text))
-    calls[f] = used - local
-bad = []
-for f in files:
-    for other in files:
-        if other == f: continue
-        for name in sorted(calls[f] & defs[other]):
-            bad.append(f"  {f} uses {name}(), which only {other} defines")
-if bad:
-    print("sync-agents: a core file reaches into another:", file=sys.stderr)
-    print("
-".join(bad), file=sys.stderr)
-    print("             that resolves in a browser and throws in QML.", file=sys.stderr)
-    print("             pass it on the world object instead (see w.k).", file=sys.stderr)
-    sys.exit(1)
-PYEOF
-}
-
 # The opposite failure, and a worse one: a core file calling something another
 # core file defines. See check-core-refs.py for what that cost.
 check_cross_refs() {
@@ -96,7 +57,6 @@ check_cross_refs() {
 
 if [[ ${1:-} == --check ]]; then
   check_collisions
-  check_cross_refs
   check_cross_refs
   status=0
   for f in "${CORE[@]}"; do
