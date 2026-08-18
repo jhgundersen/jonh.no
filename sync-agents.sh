@@ -111,6 +111,30 @@ fi
 
 check_collisions
 check_cross_refs
+
+# Refuse to write into the live plugin directory while the screen is locked.
+#
+# This is not a nicety. The Omarchy lock screen is not a separate program: it is
+# a quickshell plugin, so quickshell IS the lockscreen app. Copying a file into
+# ~/.config/omarchy/plugins/ makes quickshell hot-reload, and a hot-reload while
+# a session lock is held destroys the lock surface. Hyprland then reports that
+# the lockscreen app died and drops you on a recovery screen, and the machine is
+# unusable until somebody runs
+#
+#   hyprctl eval 'hl.clear_crashed_lockscreen()'
+#
+# from another tty. That has happened once, from exactly this script, and the
+# journal shows the reload and the lock coming apart in the same second.
+if command -v omarchy >/dev/null 2>&1 && [[ ${1:-} != --force ]]; then
+  if [[ $(omarchy shell lock isLocked 2>/dev/null) == "true" ]]; then
+    echo "sync-agents: the screen is locked — not touching the plugin directory." >&2
+    echo "             quickshell is the lock screen here, and writing to a plugin" >&2
+    echo "             hot-reloads it, which kills the lock and strands the session." >&2
+    echo "             unlock first, or pass --force if you know the screen is free." >&2
+    exit 1
+  fi
+fi
+
 for f in "${CORE[@]}"; do
   cp "$src/$f" "$dst/$f"
   echo "  $f -> $dst/$f"
